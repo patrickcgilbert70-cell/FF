@@ -6,6 +6,7 @@ Connects to Oracle database and reports connection status
 
 import sys
 import getpass
+import argparse
 
 try:
     import oracledb
@@ -15,27 +16,36 @@ except ImportError:
     sys.exit(1)
 
 
-def connect_to_oracle():
+def connect_to_oracle(username=None, password=None):
     """
     Connect to Oracle database and report connection status
+
+    Args:
+        username (str, optional): Database username. If not provided, will prompt.
+        password (str, optional): Database password. If not provided, will prompt.
     """
     # Database connection parameters
     hostname = "dcmpgwm04-cl.edc.nam.gm.com"
     port = 1521  # Default Oracle port
     service_name = "gwmtkpd_srv.edc.nam.gm.com"
 
-    # Prompt for credentials
+    # Display connection info
     print("Oracle Database Connection")
     print(f"Hostname: {hostname}")
     print(f"Service Name: {service_name}")
     print("-" * 50)
 
-    username = input("Enter username: ").strip()
+    # Get credentials - use provided values or prompt
+    if username is None:
+        username = input("Enter username: ").strip()
+
     if not username:
         print("Error: Username cannot be empty")
         return
 
-    password = getpass.getpass("Enter password: ")
+    if password is None:
+        password = getpass.getpass("Enter password: ")
+
     if not password:
         print("Error: Password cannot be empty")
         return
@@ -79,4 +89,34 @@ def connect_to_oracle():
 
 
 if __name__ == "__main__":
-    connect_to_oracle()
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="Connect to Oracle database and report connection status",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Interactive mode (prompts for credentials):
+  python oracle_connection.py
+
+  # With username only (prompts for password):
+  python oracle_connection.py -u myusername
+
+  # With both username and password:
+  python oracle_connection.py -u myusername -p mypassword
+        """
+    )
+    parser.add_argument(
+        '-u', '--username',
+        type=str,
+        help='Database username (will prompt if not provided)'
+    )
+    parser.add_argument(
+        '-p', '--password',
+        type=str,
+        help='Database password (will prompt if not provided)'
+    )
+
+    args = parser.parse_args()
+
+    # Connect with provided credentials (or None to prompt)
+    connect_to_oracle(username=args.username, password=args.password)
