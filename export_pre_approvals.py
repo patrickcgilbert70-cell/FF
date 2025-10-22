@@ -34,6 +34,51 @@ except ImportError:
     sys.exit(1)
 
 
+def sanitize_text_for_excel(text):
+    """
+    Sanitize text to remove characters that are illegal in Excel/XML
+
+    Args:
+        text: Input text (can be str or None)
+
+    Returns:
+        str: Sanitized text safe for Excel cells
+    """
+    if text is None:
+        return None
+
+    if not isinstance(text, str):
+        text = str(text)
+
+    # Remove illegal XML characters (control characters except tab, newline, carriage return)
+    # Excel/openpyxl uses XML internally and doesn't support these characters
+    illegal_chars = [
+        (0x00, 0x08),  # Control characters
+        (0x0B, 0x0C),  # Vertical tab, form feed
+        (0x0E, 0x1F),  # More control characters
+        (0x7F, 0x84),  # DEL and other control characters
+        (0x86, 0x9F),  # Additional control characters
+    ]
+
+    result = []
+    for char in text:
+        char_code = ord(char)
+        is_illegal = False
+
+        for start, end in illegal_chars:
+            if start <= char_code <= end:
+                is_illegal = True
+                break
+
+        if is_illegal:
+            # Replace with space or remove
+            result.append(' ')
+        else:
+            result.append(char)
+
+    return ''.join(result)
+
+
 def get_pre_approvals_data(connection):
     """
     Fetch pre-approval data from the database
@@ -146,13 +191,13 @@ def create_excel_with_images(data, connection, output_file='pre_approvals_with_i
     for record in data:
         pre_approval_id, status, request_date, trouble_text, correction_text, comment_text = record
 
-        # Write data to cells
+        # Write data to cells (sanitize text fields to remove illegal Excel characters)
         ws.cell(row=current_row, column=1, value=pre_approval_id)
-        ws.cell(row=current_row, column=2, value=status)
+        ws.cell(row=current_row, column=2, value=sanitize_text_for_excel(status))
         ws.cell(row=current_row, column=3, value=request_date)
-        ws.cell(row=current_row, column=4, value=trouble_text)
-        ws.cell(row=current_row, column=5, value=correction_text)
-        ws.cell(row=current_row, column=6, value=comment_text)
+        ws.cell(row=current_row, column=4, value=sanitize_text_for_excel(trouble_text))
+        ws.cell(row=current_row, column=5, value=sanitize_text_for_excel(correction_text))
+        ws.cell(row=current_row, column=6, value=sanitize_text_for_excel(comment_text))
 
         # Fetch and embed images for this pre-approval
         try:
@@ -206,12 +251,13 @@ def create_excel_with_images(data, connection, output_file='pre_approvals_with_i
 
                             ws.add_image(xl_image)
 
-                            # Add filename as hyperlink or text
+                            # Add filename as hyperlink or text (sanitize to remove illegal characters)
                             cell = ws.cell(row=current_row, column=image_col)
+                            sanitized_filename = sanitize_text_for_excel(filename)
                             if cell.value:
-                                cell.value = f"{cell.value}\n{filename}"
+                                cell.value = f"{cell.value}\n{sanitized_filename}"
                             else:
-                                cell.value = filename
+                                cell.value = sanitized_filename
 
                             image_offset += 105  # Offset for next image
 
