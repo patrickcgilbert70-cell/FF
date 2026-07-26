@@ -49,3 +49,7 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Game Camera Summary output/cache
+analysis_cache.json
+game_camera_summary.md
