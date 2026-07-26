@@ -2,6 +2,8 @@
 
 This repository contains Python scripts for working with Oracle databases, including connection testing and pre-approval data export.
 
+It also contains the **Game Camera Summary** tool — see below.
+
 ## Configuration
 
 The script connects to:
@@ -139,3 +141,45 @@ The script executes a query that:
 - Orders by request date (descending) and sequence ID
 
 Images are fetched from the `pre_approval_attachment_data3` table based on the pre-approval ID.
+
+---
+
+# Game Camera Summary
+
+The `game_camera_summary.py` script analyzes a folder of game/trail camera photos and
+produces a daily activity summary.
+
+For each photo, it uses Claude vision (Anthropic API) to read the date/time stamp the
+camera burns into the image and to count animals present: pigs, turkeys, female doe,
+male bucks, and cows. Results are cached locally (`analysis_cache.json` in the input
+folder by default) so re-running the script only analyzes new photos.
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY=your-api-key-here
+```
+
+## Usage
+
+```bash
+python game_camera_summary.py --input "C:\Beave\Files\Investments\Real Estate\235 Antler Lane Rocky Hollow Lot 65\Pics\Analyze"
+```
+
+Optional arguments:
+- `--output` — path for the markdown report (default: `game_camera_summary.md`)
+- `--cache` — path for the analysis cache JSON (default: `analysis_cache.json` inside the input folder)
+- `--model` — Claude model to use for vision analysis (default: `claude-haiku-4-5-20251001`)
+- `--workers` — number of concurrent API requests (default: 4)
+- `--api-key` — Anthropic API key (defaults to the `ANTHROPIC_API_KEY` environment variable)
+
+## Report Contents
+
+- **Overall summary**: total pictures and counts of pigs, turkeys, female doe, male
+  bucks, and cows across all photos analyzed.
+- **Per-day breakdown**, for each day:
+  - Total pictures and the same species counts, for that day
+  - First time a pig was spotted
+  - First time a pig was spotted after 6:00 PM
+  - The photo with the most pigs, and the count
